@@ -7,6 +7,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,9 +18,12 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.livetranslate.ui.*
@@ -26,9 +32,7 @@ class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        // Handle permission results - the UI will update based on ViewModel state
-    }
+    ) { _ -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +85,12 @@ fun LiveTranslateApp(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Show loading screen while models are being copied
+    if (!state.isModelReady) {
+        ModelLoadingScreen(message = state.modelLoadingMessage)
+        return
+    }
+
     // Error Snackbar
     state.errorMessage?.let { msg ->
         Snackbar(
@@ -98,7 +108,6 @@ fun LiveTranslateApp(
     Scaffold(
         containerColor = Color.Black,
         bottomBar = {
-            // Mode switch bar
             NavigationBar(
                 containerColor = Color(0xFF1E1E1E),
                 tonalElevation = 0.dp
@@ -150,10 +159,14 @@ fun LiveTranslateApp(
                         isProcessing = state.isProcessing,
                         sourceLang = state.sourceLanguage,
                         targetLangDisplay = state.targetLanguage.displayName,
+                        lastLatencyMs = state.lastLatencyMs,
+                        conversationHistory = state.conversationHistory,
                         onInputChange = { onIntent(TranslateIntent.SetStandardInput(it)) },
                         onTranslate = { onIntent(TranslateIntent.TranslateStandardInput) },
                         onToggleListen = { onIntent(TranslateIntent.ToggleListening) },
-                        onOpenLanguagePicker = { onIntent(TranslateIntent.ShowLanguagePicker) }
+                        onOpenLanguagePicker = { onIntent(TranslateIntent.ShowLanguagePicker) },
+                        onCopy = { onIntent(TranslateIntent.CopyToClipboard(it)) },
+                        onShare = { onIntent(TranslateIntent.ShareText(it)) }
                     )
                 }
                 TranslationMode.LIVE_DUPLEX -> {
@@ -180,5 +193,38 @@ fun LiveTranslateApp(
                 onIntent(TranslateIntent.SelectLanguage(config))
             }
         )
+    }
+}
+
+/**
+ * Splash/loading screen shown while models are being copied from assets to internal storage.
+ */
+@Composable
+fun ModelLoadingScreen(message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "LiveTranslate",
+                color = Color(0xFF4285F4),
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            CircularProgressIndicator(
+                color = Color(0xFF4285F4),
+                strokeWidth = 3.dp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = message,
+                color = Color.Gray,
+                fontSize = 14.sp
+            )
+        }
     }
 }

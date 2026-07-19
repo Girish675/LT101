@@ -140,9 +140,15 @@ tasks.register("downloadModelsAndHeaders") {
             println("Silero VAD Model already exists.")
         }
         
-        // NOTE: Opus-MT and Piper TTS ONNX files are highly dependent on the target language.
-        // For a full production build, you would add similar URLs here to pull those specific ONNX weights.
-        // Example: https://huggingface.co/rhasspy/piper-voices/.../en_US-lessac-medium.onnx
+        // 3. Create mock/dummy files for Opus-MT and Piper TTS (Since we are using mock implementations)
+        val dummyModels = listOf("opus-mt-en-es-encoder.onnx", "opus-mt-en-es-decoder.onnx", "vocab.json", "piper")
+        dummyModels.forEach { fileName ->
+            val mockFile = file("${assetsDir.absolutePath}/$fileName")
+            if (!mockFile.exists()) {
+                println("Creating mock model file: $fileName")
+                mockFile.writeText("MOCK_MODEL_DATA_FOR_ONNX_STUB")
+            }
+        }
         
         // 2. Download Whisper.cpp headers and sources for JNI compilation
         val cppDir = file("src/main/cpp")

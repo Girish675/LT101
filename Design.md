@@ -70,14 +70,15 @@ The core implementation is structured as follows:
     *   `WhisperSTTImpl`: JNI wrapper calling into `whisper.cpp` via `whisper_jni.cpp`.
     *   `OpusMTImpl`: ONNX Runtime wrapper for MarianMT encoder/decoder.
     *   `PiperTTSImpl`: ONNX Runtime wrapper for Piper TTS synthesis.
-*   **`SileroVAD.kt`**: Voice Activity Detection via Silero VAD ONNX model (~2MB). Evaluates 512-sample frames and returns speech probability [0.0, 1.0].
+*   **`SileroVAD.kt`**: Handles Voice Activity Detection (VAD) via ONNX Runtime to determine speech onset/offset.
+*   **`ModelManager.kt`**: Manages on-device AI models. It copies bundled models from `assets/models/` to the app's internal storage (`filesDir/models/`) on first launch to make them accessible to the native Inference Engines. Supports downloading optional models on demand.
 *   **`TranslationPipeline.kt`**: Orchestrator implementing the full Design §6 flow: VAD end-of-speech detection → STT → MT → TTS. Coordinates all inference engines in a single coroutine pipeline.
 
 ### 7.4 UI Layer (`com.livetranslate.ui`)
-*   **`LiveTranslateViewModel.kt`**: MVI ViewModel implementing Unidirectional Data Flow. Manages `LiveTranslateUiState` and processes `TranslateIntent` sealed class events. Coordinates `AudioPipelineManager`, `CircularAudioBuffer`, `AudioRecordService`, and `TranslationPipeline`.
+*   **`LiveTranslateViewModel.kt`**: MVI ViewModel implementing Unidirectional Data Flow. Manages `LiveTranslateUiState` and processes `TranslateIntent` sealed class events. Coordinates `AudioPipelineManager`, `CircularAudioBuffer`, `AudioRecordService`, and `TranslationPipeline`. Features include tracking conversation history, latency metrics, and haptic feedback toggles.
 *   **`LiveDuplexScreen.kt`**: Mode 2 UI. Split-screen OLED Dark Mode design with 180° inverted Target Language section. Canvas-based voice waveform animation. Searchable `LanguageVoicePickerSheet` (ModalBottomSheet) with flag emojis, language names, and expandable voice profile sub-dropdowns.
-*   **`TranslationScreen.kt`**: Mode 1 UI. Standard translation screen with text input, push-to-talk button, translate button, and output display.
-*   **`MainActivity.kt`**: Entry point. Configures dark Material 3 theme, requests runtime permissions (RECORD_AUDIO, BLUETOOTH_CONNECT, POST_NOTIFICATIONS), and provides a NavigationBar for switching between Standard and Live Duplex modes.
+*   **`TranslationScreen.kt`**: Mode 1 UI. Standard translation screen with text input, push-to-talk button, translate button, and output display. Features a scrollable conversation history with per-bubble latency indicators, copy, and share actions.
+*   **`MainActivity.kt`**: Entry point. Configures dark Material 3 theme, requests runtime permissions (RECORD_AUDIO, BLUETOOTH_CONNECT, POST_NOTIFICATIONS, VIBRATE), shows a model-loading splash screen, and provides a NavigationBar for switching between Standard and Live Duplex modes.
 
 ### 7.5 Native C++ Layer (`app/src/main/cpp`)
 *   **`whisper_jni.cpp`**: Functional JNI bridge. Initializes Whisper context, converts 16-bit PCM to 32-bit float, runs inference, and returns concatenated segment text.

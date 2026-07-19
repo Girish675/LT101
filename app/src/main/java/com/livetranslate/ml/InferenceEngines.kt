@@ -3,7 +3,6 @@ package com.livetranslate.ml
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.nio.ShortBuffer
 
 /**
  * Interface for Speech-to-Text inference (Whisper.cpp)

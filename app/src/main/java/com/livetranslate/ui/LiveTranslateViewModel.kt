@@ -1,7 +1,14 @@
 package com.livetranslate.ui
 
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.livetranslate.audio.AudioPipelineManager
@@ -19,10 +26,16 @@ import java.io.File
 /**
  * MVI ViewModel for LiveTranslate.
  * Design §2.1: "Unidirectional Data Flow (UDF) with MVI in the presentation layer."
- *
- * Manages the full translation pipeline state and coordinates
- * AudioPipelineManager, CircularAudioBuffer, and TranslationPipeline.
  */
+
+// --- Conversation History ---
+
+data class ConversationEntry(
+    val sourceText: String,
+    val translatedText: String,
+    val timestampMs: Long = System.currentTimeMillis(),
+    val latencyMs: Long = 0L
+)
 
 // --- UI State ---
 
@@ -43,12 +56,18 @@ data class LiveTranslateUiState(
     val sourceLanguage: String = "en",
     val targetLanguage: LanguageConfig = LanguageConfig(),
     val showLanguagePicker: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    // New features
+    val isModelReady: Boolean = false,
+    val modelLoadingMessage: String = "Loading models…",
+    val conversationHistory: List<ConversationEntry> = emptyList(),
+    val lastLatencyMs: Long = 0L,
+    val hapticFeedbackEnabled: Boolean = true
 )
 
 enum class TranslationMode {
-    STANDARD,   // Mode 1: Tap mic, speak, translate
-    LIVE_DUPLEX // Mode 2: Continuous bidirectional
+    STANDARD,
+    LIVE_DUPLEX
 }
 
 // --- Intents ---
@@ -62,6 +81,10 @@ sealed class TranslateIntent {
     data object ShowLanguagePicker : TranslateIntent()
     data object HideLanguagePicker : TranslateIntent()
     data object DismissError : TranslateIntent()
+    data class CopyToClipboard(val text: String) : TranslateIntent()
+    data class ShareText(val text: String) : TranslateIntent()
+    data object ToggleHapticFeedback : TranslateIntent()
+    data object ClearHistory : TranslateIntent()
 }
 
 class LiveTranslateViewModel(application: Application) : AndroidViewModel(application) {
@@ -70,6 +93,7 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
     val uiState: StateFlow<LiveTranslateUiState> = _uiState.asStateFlow()
 
     private val audioPipeline = AudioPipelineManager(application)
+    private val modelManager = ModelManager(application)
 
     // 30 seconds of audio at 16kHz
     private val circularBuffer = CircularAudioBuffer(capacityInSamples = 16000 * 30)
@@ -80,18 +104,42 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
     private var processingJob: Job? = null
 
     init {
-        initializePipeline()
+        viewModelScope.launch {
+            setupModelsAndPipeline()
+        }
+    }
+
+    /**
+     * First-launch model setup: copy assets → filesDir, then init pipeline.
+     */
+    private suspend fun setupModelsAndPipeline() {
+        _uiState.update { it.copy(modelLoadingMessage = "Preparing models…") }
+
+        when (val result = modelManager.ensureModelsReady()) {
+            is ModelSetupResult.Ready -> {
+                _uiState.update { it.copy(modelLoadingMessage = "Initializing engines…") }
+                initializePipeline()
+                _uiState.update { it.copy(isModelReady = true) }
+            }
+            is ModelSetupResult.MissingModels -> {
+                _uiState.update {
+                    it.copy(
+                        isModelReady = false,
+                        errorMessage = "Missing models: ${result.fileNames.joinToString()}. " +
+                            "Please rebuild the project to trigger the Gradle download task."
+                    )
+                }
+            }
+        }
     }
 
     private fun initializePipeline() {
-        val ctx = getApplication<Application>()
-        val modelsDir = File(ctx.filesDir, "models")
+        val modelsDir = modelManager.modelsDir
 
-        // In production, these would point to real model files copied from assets on first launch.
-        // For now, we create the pipeline with the interfaces wired up.
         try {
-            val whisperModelPath = File(modelsDir, "ggml-tiny.en.bin").absolutePath
-            val stt: WhisperSTT = WhisperSTTImpl(whisperModelPath)
+            val stt: WhisperSTT = WhisperSTTImpl(
+                modelManager.getModelPath("ggml-tiny.en.bin")
+            )
             val mt: OpusMT = OpusMTImpl(
                 File(modelsDir, "opus-mt-en-es-encoder.onnx"),
                 File(modelsDir, "opus-mt-en-es-decoder.onnx"),
@@ -99,7 +147,7 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
             )
             val tts: PiperTTS = PiperTTSImpl(File(modelsDir, "piper"))
             val vad: VoiceActivityDetector = SileroVADImpl(
-                File(modelsDir, "silero_vad.onnx").absolutePath
+                modelManager.getModelPath("silero_vad.onnx")
             )
 
             mtEngine = mt
@@ -128,6 +176,14 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
             }
             is TranslateIntent.DismissError -> {
                 _uiState.update { it.copy(errorMessage = null) }
+            }
+            is TranslateIntent.CopyToClipboard -> copyToClipboard(intent.text)
+            is TranslateIntent.ShareText -> shareText(intent.text)
+            is TranslateIntent.ToggleHapticFeedback -> {
+                _uiState.update { it.copy(hapticFeedbackEnabled = !it.hapticFeedbackEnabled) }
+            }
+            is TranslateIntent.ClearHistory -> {
+                _uiState.update { it.copy(conversationHistory = emptyList()) }
             }
         }
     }
@@ -159,7 +215,6 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
     private fun startListening() {
         val ctx = getApplication<Application>()
 
-        // Start foreground service (Design §6.1)
         val serviceIntent = Intent(ctx, AudioRecordService::class.java).apply {
             action = AudioRecordService.ACTION_START
         }
@@ -168,11 +223,15 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
         _uiState.update { it.copy(isListening = true) }
         circularBuffer.clear()
 
+        // Haptic feedback: speech detection start
+        if (_uiState.value.hapticFeedbackEnabled) {
+            triggerHaptic()
+        }
+
         recordingJob = viewModelScope.launch {
             audioPipeline.startRecording(isEarbudUser = true).collect { audioChunk ->
                 circularBuffer.write(audioChunk)
 
-                // Run VAD on the latest audio
                 val recentAudio = circularBuffer.readLast(16000) // last 1 second
                 val speechEnded = pipeline?.detectEndOfSpeech(recentAudio) ?: false
 
@@ -198,10 +257,8 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
         _uiState.update { it.copy(isListening = false) }
     }
 
-    /**
-     * Design §6 steps 4-7: STT → MT → TTS → Playback
-     */
     private suspend fun processAudioChunk(audioChunk: ShortArray) {
+        val startTime = System.currentTimeMillis()
         _uiState.update { it.copy(isProcessing = true) }
         try {
             val state = _uiState.value
@@ -212,15 +269,29 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
                 voiceProfile = state.targetLanguage.voiceProfile
             )
 
+            val latency = System.currentTimeMillis() - startTime
+
             if (result != null && result.sourceText.isNotBlank()) {
+                val entry = ConversationEntry(
+                    sourceText = result.sourceText,
+                    translatedText = result.translatedText,
+                    latencyMs = latency
+                )
+
                 _uiState.update {
                     it.copy(
                         earbudTranscript = result.sourceText,
-                        targetTranscript = result.translatedText
+                        targetTranscript = result.translatedText,
+                        lastLatencyMs = latency,
+                        conversationHistory = it.conversationHistory + entry
                     )
                 }
 
-                // Design §6.7: Play synthesized audio through the appropriate output
+                // Haptic feedback on translation complete
+                if (_uiState.value.hapticFeedbackEnabled) {
+                    triggerHaptic()
+                }
+
                 if (result.synthesizedAudio.isNotEmpty()) {
                     audioPipeline.playAudio(result.synthesizedAudio, isEarbudUser = true)
                 }
@@ -232,26 +303,70 @@ class LiveTranslateViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    /**
-     * Mode 1 (Standard): Translate text input directly through MT.
-     */
     private fun translateStandardInput() {
         val text = _uiState.value.standardInputText
         if (text.isBlank()) return
 
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
             _uiState.update { it.copy(isProcessing = true) }
             try {
                 val state = _uiState.value
-                // Use the MT engine already initialized in the pipeline
                 val mtResult = mtEngine?.translate(text, state.sourceLanguage, state.targetLanguage.code)
                     ?: "[Translation engine not loaded]"
 
-                _uiState.update { it.copy(standardOutputText = mtResult, isProcessing = false) }
+                val latency = System.currentTimeMillis() - startTime
+                val entry = ConversationEntry(
+                    sourceText = text,
+                    translatedText = mtResult,
+                    latencyMs = latency
+                )
+
+                _uiState.update {
+                    it.copy(
+                        standardOutputText = mtResult,
+                        isProcessing = false,
+                        lastLatencyMs = latency,
+                        conversationHistory = it.conversationHistory + entry
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update { it.copy(errorMessage = e.message, isProcessing = false) }
             }
         }
+    }
+
+    // --- New Feature: Copy to Clipboard ---
+    private fun copyToClipboard(text: String) {
+        val ctx = getApplication<Application>()
+        val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("LiveTranslate", text))
+    }
+
+    // --- New Feature: Share ---
+    private fun shareText(text: String) {
+        val ctx = getApplication<Application>()
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        ctx.startActivity(Intent.createChooser(shareIntent, "Share Translation").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    }
+
+    // --- New Feature: Haptic Feedback ---
+    private fun triggerHaptic() {
+        val ctx = getApplication<Application>()
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vm.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            ctx.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+        vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
     override fun onCleared() {
