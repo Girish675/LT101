@@ -1,7 +1,12 @@
 package com.livetranslate.ml
 
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.nio.FloatBuffer
 
 /**
  * Voice Activity Detection using Silero VAD (~2MB ONNX model).
@@ -21,27 +26,103 @@ interface VoiceActivityDetector {
 }
 
 class SileroVADImpl(modelPath: String) : VoiceActivityDetector {
-    // In production this uses ONNX Runtime to load the Silero VAD model.
-    // import ai.onnxruntime.OrtEnvironment
-    // import ai.onnxruntime.OrtSession
+    
+    companion object {
+        private const val TAG = "SileroVAD"
+        private const val SAMPLE_RATE = 16000L
+    }
 
-    // private val environment = OrtEnvironment.getEnvironment()
-    // private val session = environment.createSession(modelPath)
+    private val environment = OrtEnvironment.getEnvironment()
+    private val session: OrtSession
+
     // State tensors for the LSTM-based Silero VAD
-    // private var h = FloatArray(128) { 0f }
-    // private var c = FloatArray(128) { 0f }
+    // h and c are shape [2, 1, 64]
+    private var h = FloatArray(2 * 1 * 64) { 0f }
+    private var c = FloatArray(2 * 1 * 64) { 0f }
+
+    init {
+        session = try {
+            val sessionOptions = OrtSession.SessionOptions()
+            sessionOptions.setIntraOpNumThreads(1)
+            environment.createSession(modelPath, sessionOptions)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load Silero VAD ONNX model: ${e.message}")
+            throw RuntimeException("Failed to initialize VAD", e)
+        }
+    }
 
     override suspend fun isSpeech(audioFrame: ShortArray): Float = withContext(Dispatchers.Default) {
-        // Convert ShortArray to FloatArray normalised to [-1, 1]
-        // val floatData = FloatArray(audioFrame.size) { audioFrame[it] / 32768f }
-        // Run ONNX session with (input, h, c, sr) → (output, hn, cn)
-        // Update h and c state
-        // Return output probability
-        0.0f // Stub: replace with real ONNX inference
+        try {
+            // Convert ShortArray to FloatArray normalized to [-1, 1]
+            val floatData = FloatArray(audioFrame.size) { audioFrame[it] / 32768f }
+            
+            // Create input tensor [1, sequence_length]
+            val inputTensor = OnnxTensor.createTensor(
+                environment,
+                FloatBuffer.wrap(floatData),
+                longArrayOf(1, floatData.size.toLong())
+            )
+
+            // Create sample rate tensor [1]
+            val srTensor = OnnxTensor.createTensor(
+                environment,
+                LongArray(1) { SAMPLE_RATE }
+            )
+
+            // Create h and c state tensors [2, 1, 64]
+            val hTensor = OnnxTensor.createTensor(
+                environment,
+                FloatBuffer.wrap(h),
+                longArrayOf(2, 1, 64)
+            )
+            val cTensor = OnnxTensor.createTensor(
+                environment,
+                FloatBuffer.wrap(c),
+                longArrayOf(2, 1, 64)
+            )
+
+            // Run inference
+            val inputs = mapOf(
+                "input" to inputTensor,
+                "sr" to srTensor,
+                "h" to hTensor,
+                "c" to cTensor
+            )
+            
+            val result = session.run(inputs)
+
+            // Extract output probability
+            val outputTensor = result.get(0) as OnnxTensor
+            val outputData = outputTensor.floatBuffer.array()
+            val probability = outputData[0]
+
+            // Extract updated states
+            val hnTensor = result.get(1) as OnnxTensor
+            val cnTensor = result.get(2) as OnnxTensor
+            
+            hnTensor.floatBuffer.get(h)
+            cnTensor.floatBuffer.get(c)
+
+            // Cleanup tensors for this run
+            inputTensor.close()
+            srTensor.close()
+            hTensor.close()
+            cTensor.close()
+            result.close()
+
+            probability
+        } catch (e: Exception) {
+            Log.e(TAG, "VAD inference failed", e)
+            0f
+        }
     }
 
     override fun release() {
-        // session.close()
-        // environment.close()
+        try {
+            session.close()
+            environment.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing VAD session", e)
+        }
     }
 }

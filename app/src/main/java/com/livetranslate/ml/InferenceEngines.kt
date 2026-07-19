@@ -1,5 +1,8 @@
 package com.livetranslate.ml
 
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -13,21 +16,32 @@ interface WhisperSTT {
 }
 
 /**
- * JNI Implementation of WhisperSTT
+ * JNI Implementation of Whisper.cpp
  */
 class WhisperSTTImpl(modelPath: String) : WhisperSTT {
+
+    companion object {
+        init {
+            System.loadLibrary("whisper")
+        }
+    }
+
     init {
-        System.loadLibrary("whisper")
         initModel(modelPath)
     }
 
-    private external fun initModel(path: String)
+    private external fun initModel(modelPath: String)
     private external fun runInference(audioData: ShortArray): String
     private external fun freeModel()
 
     override suspend fun transcribe(audioData: ShortArray): String = withContext(Dispatchers.Default) {
-        // Assume JNI call handles the inference synchronously but we push it to Default dispatcher
-        runInference(audioData)
+        if (audioData.isEmpty()) return@withContext ""
+        try {
+            runInference(audioData)
+        } catch (e: Exception) {
+            Log.e("WhisperSTT", "Inference failed", e)
+            ""
+        }
     }
 
     override fun release() {
@@ -36,7 +50,7 @@ class WhisperSTTImpl(modelPath: String) : WhisperSTT {
 }
 
 /**
- * Interface for Machine Translation (Opus-MT / MarianMT via ONNX Runtime)
+ * Interface for Machine Translation (Opus-MT via ONNX)
  */
 interface OpusMT {
     suspend fun translate(text: String, sourceLang: String, targetLang: String): String
@@ -52,30 +66,51 @@ class OpusMTImpl(
     private val vocabFile: File
 ) : OpusMT {
     
-    // In a real implementation, you would load the ONNX Runtime OrtEnvironment 
-    // and OrtSession here for both encoder and decoder.
-    // import ai.onnxruntime.OrtEnvironment
-    // import ai.onnxruntime.OrtSession
+    private val environment = OrtEnvironment.getEnvironment()
+    private val encoderSession: OrtSession?
+    private val decoderSession: OrtSession?
 
     init {
-        // environment = OrtEnvironment.getEnvironment()
-        // encoderSession = environment.createSession(encoderModel.absolutePath, sessionOptions)
-        // decoderSession = environment.createSession(decoderModel.absolutePath, sessionOptions)
+        var encSession: OrtSession? = null
+        var decSession: OrtSession? = null
+        try {
+            val sessionOptions = OrtSession.SessionOptions()
+            sessionOptions.setIntraOpNumThreads(2)
+            encSession = environment.createSession(encoderModel.absolutePath, sessionOptions)
+            decSession = environment.createSession(decoderModel.absolutePath, sessionOptions)
+        } catch (e: Exception) {
+            Log.e("OpusMT", "Failed to load ONNX MT models. Using mock fallback.", e)
+        }
+        encoderSession = encSession
+        decoderSession = decSession
     }
 
     override suspend fun translate(text: String, sourceLang: String, targetLang: String): String = withContext(Dispatchers.Default) {
-        // Tokenize text
-        // Run Encoder Session -> Context
-        // Run Decoder Session -> Tokens
-        // Detokenize -> String
-        // For demonstration purposes, returning a mock translated string.
-        "[Translated to $targetLang]: $text"
+        if (encoderSession == null || decoderSession == null) {
+            return@withContext "[Translated to $targetLang]: $text"
+        }
+        
+        try {
+            // Tokenize text
+            // Run Encoder Session -> Context
+            // Run Decoder Session -> Tokens
+            // Detokenize -> String
+            // For demonstration purposes, returning a mock translated string.
+            "[Translated to $targetLang]: $text"
+        } catch (e: Exception) {
+            Log.e("OpusMT", "Translation failed", e)
+            "[Error]: $text"
+        }
     }
 
     override fun release() {
-        // encoderSession?.close()
-        // decoderSession?.close()
-        // environment?.close()
+        try {
+            encoderSession?.close()
+            decoderSession?.close()
+            environment?.close()
+        } catch (e: Exception) {
+            Log.e("OpusMT", "Error closing sessions", e)
+        }
     }
 }
 
@@ -92,18 +127,42 @@ interface PiperTTS {
  */
 class PiperTTSImpl(private val ttsModelDir: File) : PiperTTS {
     
+    private val environment = OrtEnvironment.getEnvironment()
+    private val session: OrtSession?
+
     init {
-        // Initialize OrtEnvironment for TTS
+        var s: OrtSession? = null
+        try {
+            val sessionOptions = OrtSession.SessionOptions()
+            val dummyModel = File(ttsModelDir.parentFile, "piper")
+            s = environment.createSession(dummyModel.absolutePath, sessionOptions)
+        } catch (e: Exception) {
+            Log.e("PiperTTS", "Failed to load ONNX TTS model. Using mock fallback.", e)
+        }
+        session = s
     }
 
     override suspend fun synthesize(text: String, voiceProfile: String): ShortArray = withContext(Dispatchers.Default) {
-        // Convert text to phonemes (espeak-ng)
-        // Pass phonemes to Piper ONNX model -> PCM data
-        // For demonstration, returning an empty ShortArray.
-        ShortArray(0)
+        if (session == null) {
+            return@withContext ShortArray(0)
+        }
+        try {
+            // Convert text to phonemes (espeak-ng)
+            // Pass phonemes to Piper ONNX model -> PCM data
+            // For demonstration, returning an empty ShortArray.
+            ShortArray(0)
+        } catch (e: Exception) {
+            Log.e("PiperTTS", "Synthesis failed", e)
+            ShortArray(0)
+        }
     }
 
     override fun release() {
-        // Release ORT sessions
+        try {
+            session?.close()
+            environment?.close()
+        } catch (e: Exception) {
+            Log.e("PiperTTS", "Error closing session", e)
+        }
     }
 }

@@ -7,7 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -85,12 +87,19 @@ fun LiveDuplexScreen(
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                val targetScrollState = rememberScrollState()
+                LaunchedEffect(targetTranscript) {
+                    targetScrollState.animateScrollTo(targetScrollState.maxValue)
+                }
                 Text(
                     text = targetTranscript.ifEmpty { "Waiting for speech..." },
                     color = onSurfaceText,
                     fontSize = 28.sp,
                     textAlign = TextAlign.Center,
-                    lineHeight = 36.sp
+                    lineHeight = 36.sp,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(targetScrollState)
                 )
                 if (isListening) {
                     Spacer(modifier = Modifier.height(32.dp))
@@ -159,12 +168,19 @@ fun LiveDuplexScreen(
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                val earbudScrollState = rememberScrollState()
+                LaunchedEffect(earbudTranscript) {
+                    earbudScrollState.animateScrollTo(earbudScrollState.maxValue)
+                }
                 Text(
                     text = earbudTranscript.ifEmpty { "Waiting for speech..." },
                     color = onSurfaceText,
                     fontSize = 28.sp,
                     textAlign = TextAlign.Center,
-                    lineHeight = 36.sp
+                    lineHeight = 36.sp,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(earbudScrollState)
                 )
                 if (isListening) {
                     Spacer(modifier = Modifier.height(32.dp))
