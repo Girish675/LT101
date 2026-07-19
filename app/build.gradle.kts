@@ -1,3 +1,5 @@
+import java.net.URL
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -116,7 +118,7 @@ tasks.register("downloadModelsAndHeaders") {
         val whisperModel = file("${assetsDir.absolutePath}/ggml-tiny.en.bin")
         if (!whisperModel.exists()) {
             println("Downloading Whisper Model...")
-            val url = java.net.URL("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin")
+            val url = URL("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin")
             url.openStream().use { input ->
                 whisperModel.outputStream().use { output ->
                     input.copyTo(output)
@@ -130,7 +132,7 @@ tasks.register("downloadModelsAndHeaders") {
         val vadModel = file("${assetsDir.absolutePath}/silero_vad.onnx")
         if (!vadModel.exists()) {
             println("Downloading Silero VAD Model...")
-            val vadUrl = java.net.URL("https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx")
+            val vadUrl = URL("https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx")
             vadUrl.openStream().use { input ->
                 vadModel.outputStream().use { output ->
                     input.copyTo(output)
@@ -167,7 +169,7 @@ tasks.register("downloadModelsAndHeaders") {
             val targetFile = file("${cppDir.absolutePath}/$fileName")
             if (!targetFile.exists()) {
                 println("Downloading $fileName...")
-                val url = java.net.URL(downloadUrl)
+                val url = URL(downloadUrl)
                 url.openStream().use { input ->
                     targetFile.outputStream().use { output ->
                         input.copyTo(output)
