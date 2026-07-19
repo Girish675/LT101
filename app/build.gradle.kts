@@ -94,3 +94,67 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
+// ---------------------------------------------------------
+// CUSTOM TASKS FOR AUTOMATED ASSET & C++ HEADER DOWNLOADS
+// ---------------------------------------------------------
+
+tasks.register("downloadModelsAndHeaders") {
+    doLast {
+        val assetsDir = file("src/main/assets/models")
+        if (!assetsDir.exists()) {
+            assetsDir.mkdirs()
+        }
+        
+        // 1. Download Whisper Tiny Model
+        val whisperModel = file("${assetsDir.absolutePath}/ggml-tiny.en.bin")
+        if (!whisperModel.exists()) {
+            println("Downloading Whisper Model...")
+            val url = java.net.URL("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin")
+            url.openStream().use { input ->
+                whisperModel.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        } else {
+            println("Whisper Model already exists.")
+        }
+        
+        // NOTE: Opus-MT and Piper TTS ONNX files are highly dependent on the target language.
+        // For a full production build, you would add similar URLs here to pull those specific ONNX weights.
+        // Example: https://huggingface.co/rhasspy/piper-voices/.../en_US-lessac-medium.onnx
+        
+        // 2. Download Whisper.cpp headers and sources for JNI compilation
+        val cppDir = file("src/main/cpp")
+        val cppFilesToDownload = mapOf(
+            "whisper.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/whisper.h",
+            "whisper.cpp" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/whisper.cpp",
+            "ggml.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml.h",
+            "ggml.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml.c",
+            "ggml-alloc.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-alloc.h",
+            "ggml-alloc.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-alloc.c",
+            "ggml-backend.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-backend.h",
+            "ggml-backend.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-backend.c"
+        )
+        
+        cppFilesToDownload.forEach { (fileName, downloadUrl) ->
+            val targetFile = file("${cppDir.absolutePath}/$fileName")
+            if (!targetFile.exists()) {
+                println("Downloading $fileName...")
+                val url = java.net.URL(downloadUrl)
+                url.openStream().use { input ->
+                    targetFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Hook the download task before the standard build process starts
+tasks.whenTaskAdded {
+    if (name == "preBuild") {
+        dependsOn("downloadModelsAndHeaders")
+    }
+}
