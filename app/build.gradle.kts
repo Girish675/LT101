@@ -79,10 +79,16 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
+    // ViewModel Compose integration (needed for viewModel() in Compose)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    // Material Icons Extended (for Headphones, SwapHoriz, Send icons)
+    implementation("androidx.compose.material:material-icons-extended")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
-    // ONNX Runtime for Opus-MT and Piper TTS
+    // ONNX Runtime for Opus-MT, Piper TTS, and Silero VAD
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.1")
     
     // Testing
@@ -118,6 +124,20 @@ tasks.register("downloadModelsAndHeaders") {
             }
         } else {
             println("Whisper Model already exists.")
+        }
+
+        // 2. Download Silero VAD Model (~2MB)
+        val vadModel = file("${assetsDir.absolutePath}/silero_vad.onnx")
+        if (!vadModel.exists()) {
+            println("Downloading Silero VAD Model...")
+            val vadUrl = java.net.URL("https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx")
+            vadUrl.openStream().use { input ->
+                vadModel.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        } else {
+            println("Silero VAD Model already exists.")
         }
         
         // NOTE: Opus-MT and Piper TTS ONNX files are highly dependent on the target language.
