@@ -3,7 +3,7 @@ project("whisper")
 
 # Set C and C++ flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -DNDEBUG -std=c11")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG -std=c++17")
 
 # Include directories (assuming everything is in the same directory)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

@@ -35,12 +35,16 @@ class SileroVADImpl(modelPath: String) : VoiceActivityDetector {
     private val environment = OrtEnvironment.getEnvironment()
     private val session: OrtSession
 
-    // State tensors for the LSTM-based Silero VAD
+    // State buffers for the LSTM-based Silero VAD
     // h and c are shape [2, 1, 64]
-    private var h = FloatArray(2 * 1 * 64) { 0f }
-    private var c = FloatArray(2 * 1 * 64) { 0f }
+    private val hBuffer = java.nio.ByteBuffer.allocateDirect(2 * 1 * 64 * 4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer()
+    private val cBuffer = java.nio.ByteBuffer.allocateDirect(2 * 1 * 64 * 4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer()
 
     init {
+        val zeros = FloatArray(128) { 0f }
+        hBuffer.put(zeros).rewind()
+        cBuffer.put(zeros).rewind()
+
         session = try {
             val sessionOptions = OrtSession.SessionOptions()
             sessionOptions.setIntraOpNumThreads(1)
@@ -55,29 +59,38 @@ class SileroVADImpl(modelPath: String) : VoiceActivityDetector {
         try {
             // Convert ShortArray to FloatArray normalized to [-1, 1]
             val floatData = FloatArray(audioFrame.size) { audioFrame[it] / 32768f }
+            val inputBuffer = java.nio.ByteBuffer.allocateDirect(floatData.size * 4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer()
+            inputBuffer.put(floatData).rewind()
             
             // Create input tensor [1, sequence_length]
             val inputTensor = OnnxTensor.createTensor(
                 environment,
-                FloatBuffer.wrap(floatData),
+                inputBuffer,
                 longArrayOf(1, floatData.size.toLong())
             )
 
             // Create sample rate tensor [1]
+            val srBuffer = java.nio.ByteBuffer.allocateDirect(8).order(java.nio.ByteOrder.nativeOrder()).asLongBuffer()
+            srBuffer.put(SAMPLE_RATE).rewind()
             val srTensor = OnnxTensor.createTensor(
                 environment,
-                LongArray(1) { SAMPLE_RATE }
+                srBuffer,
+                longArrayOf(1)
             )
+
+            // Rewind state buffers before creating tensors
+            hBuffer.rewind()
+            cBuffer.rewind()
 
             // Create h and c state tensors [2, 1, 64]
             val hTensor = OnnxTensor.createTensor(
                 environment,
-                FloatBuffer.wrap(h),
+                hBuffer,
                 longArrayOf(2, 1, 64)
             )
             val cTensor = OnnxTensor.createTensor(
                 environment,
-                FloatBuffer.wrap(c),
+                cBuffer,
                 longArrayOf(2, 1, 64)
             )
 
@@ -93,15 +106,24 @@ class SileroVADImpl(modelPath: String) : VoiceActivityDetector {
 
             // Extract output probability
             val outputTensor = result.get(0) as OnnxTensor
-            val outputData = outputTensor.floatBuffer.array()
-            val probability = outputData[0]
+            val probBuffer = java.nio.ByteBuffer.allocateDirect(4).order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer()
+            val outBuf = outputTensor.floatBuffer
+            outBuf.rewind()
+            val probability = outBuf.get()
 
             // Extract updated states
             val hnTensor = result.get(1) as OnnxTensor
             val cnTensor = result.get(2) as OnnxTensor
             
-            hnTensor.floatBuffer.get(h)
-            cnTensor.floatBuffer.get(c)
+            val hnBuf = hnTensor.floatBuffer
+            hnBuf.rewind()
+            hBuffer.clear()
+            hBuffer.put(hnBuf)
+            
+            val cnBuf = cnTensor.floatBuffer
+            cnBuf.rewind()
+            cBuffer.clear()
+            cBuffer.put(cnBuf)
 
             // Cleanup tensors for this run
             inputTensor.close()
