@@ -104,85 +104,74 @@ dependencies {
 }
 
 // ---------------------------------------------------------
-// CUSTOM TASKS FOR AUTOMATED ASSET & C++ HEADER DOWNLOADS
+// EAGER DOWNLOAD OF MODELS & HEADERS (For CMake Sync)
 // ---------------------------------------------------------
 
-tasks.register("downloadModelsAndHeaders") {
-    doLast {
-        val assetsDir = file("src/main/assets/models")
-        if (!assetsDir.exists()) {
-            assetsDir.mkdirs()
+fun downloadModelsAndHeadersEagerly() {
+    val assetsDir = file("src/main/assets/models")
+    if (!assetsDir.exists()) {
+        assetsDir.mkdirs()
+    }
+    
+    // 1. Download Whisper Tiny Model
+    val whisperModel = file("${assetsDir.absolutePath}/ggml-tiny.en.bin")
+    if (!whisperModel.exists()) {
+        println("Downloading Whisper Model...")
+        val url = URL("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin")
+        url.openStream().use { input ->
+            whisperModel.outputStream().use { output ->
+                input.copyTo(output)
+            }
         }
-        
-        // 1. Download Whisper Tiny Model
-        val whisperModel = file("${assetsDir.absolutePath}/ggml-tiny.en.bin")
-        if (!whisperModel.exists()) {
-            println("Downloading Whisper Model...")
-            val url = URL("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin")
+    }
+
+    // 2. Download Silero VAD Model (~2MB)
+    val vadModel = file("${assetsDir.absolutePath}/silero_vad.onnx")
+    if (!vadModel.exists()) {
+        println("Downloading Silero VAD Model...")
+        val vadUrl = URL("https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx")
+        vadUrl.openStream().use { input ->
+            vadModel.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+    }
+    
+    // 3. Create mock/dummy files for Opus-MT and Piper TTS
+    val dummyModels = listOf("opus-mt-en-es-encoder.onnx", "opus-mt-en-es-decoder.onnx", "vocab.json", "piper")
+    dummyModels.forEach { fileName ->
+        val mockFile = file("${assetsDir.absolutePath}/$fileName")
+        if (!mockFile.exists()) {
+            println("Creating mock model file: $fileName")
+            mockFile.writeText("MOCK_MODEL_DATA_FOR_ONNX_STUB")
+        }
+    }
+    
+    // 4. Download Whisper.cpp headers and sources for JNI compilation
+    val cppDir = file("src/main/cpp")
+    val cppFilesToDownload = mapOf(
+        "whisper.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/whisper.h",
+        "whisper.cpp" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/whisper.cpp",
+        "ggml.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml.h",
+        "ggml.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml.c",
+        "ggml-alloc.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-alloc.h",
+        "ggml-alloc.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-alloc.c",
+        "ggml-backend.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-backend.h",
+        "ggml-backend.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-backend.c"
+    )
+    
+    cppFilesToDownload.forEach { (fileName, downloadUrl) ->
+        val targetFile = file("${cppDir.absolutePath}/$fileName")
+        if (!targetFile.exists()) {
+            println("Downloading $fileName...")
+            val url = URL(downloadUrl)
             url.openStream().use { input ->
-                whisperModel.outputStream().use { output ->
+                targetFile.outputStream().use { output ->
                     input.copyTo(output)
-                }
-            }
-        } else {
-            println("Whisper Model already exists.")
-        }
-
-        // 2. Download Silero VAD Model (~2MB)
-        val vadModel = file("${assetsDir.absolutePath}/silero_vad.onnx")
-        if (!vadModel.exists()) {
-            println("Downloading Silero VAD Model...")
-            val vadUrl = URL("https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx")
-            vadUrl.openStream().use { input ->
-                vadModel.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-        } else {
-            println("Silero VAD Model already exists.")
-        }
-        
-        // 3. Create mock/dummy files for Opus-MT and Piper TTS (Since we are using mock implementations)
-        val dummyModels = listOf("opus-mt-en-es-encoder.onnx", "opus-mt-en-es-decoder.onnx", "vocab.json", "piper")
-        dummyModels.forEach { fileName ->
-            val mockFile = file("${assetsDir.absolutePath}/$fileName")
-            if (!mockFile.exists()) {
-                println("Creating mock model file: $fileName")
-                mockFile.writeText("MOCK_MODEL_DATA_FOR_ONNX_STUB")
-            }
-        }
-        
-        // 2. Download Whisper.cpp headers and sources for JNI compilation
-        val cppDir = file("src/main/cpp")
-        val cppFilesToDownload = mapOf(
-            "whisper.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/whisper.h",
-            "whisper.cpp" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/whisper.cpp",
-            "ggml.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml.h",
-            "ggml.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml.c",
-            "ggml-alloc.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-alloc.h",
-            "ggml-alloc.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-alloc.c",
-            "ggml-backend.h" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-backend.h",
-            "ggml-backend.c" to "https://raw.githubusercontent.com/ggerganov/whisper.cpp/master/ggml-backend.c"
-        )
-        
-        cppFilesToDownload.forEach { (fileName, downloadUrl) ->
-            val targetFile = file("${cppDir.absolutePath}/$fileName")
-            if (!targetFile.exists()) {
-                println("Downloading $fileName...")
-                val url = URL(downloadUrl)
-                url.openStream().use { input ->
-                    targetFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
                 }
             }
         }
     }
 }
 
-// Hook the download task before the standard build process starts
-tasks.whenTaskAdded {
-    if (name == "preBuild") {
-        dependsOn("downloadModelsAndHeaders")
-    }
-}
+downloadModelsAndHeadersEagerly()

@@ -1,0 +1,119 @@
+[
+  {
+    "level_": 0,
+    "message_": "Start JSON generation. Platform version: 26 min SDK version: x86",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "rebuilding JSON C:\\Girish\\LT101\\app\\.cxx\\Debug\\h3i636p2\\x86\\android_gradle_build.json due to:",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "- no fingerprint file, will remove stale configuration folder",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "removing stale contents from \u0027C:\\Girish\\LT101\\app\\.cxx\\Debug\\h3i636p2\\x86\u0027",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "created folder \u0027C:\\Girish\\LT101\\app\\.cxx\\Debug\\h3i636p2\\x86\u0027",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "executing cmake @echo off\n\"C:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\cmake.exe\" ^\n  \"-HC:\\\\Girish\\\\LT101\\\\app\\\\src\\\\main\\\\cpp\" ^\n  \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n  \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n  \"-DCMAKE_SYSTEM_VERSION\u003d26\" ^\n  \"-DANDROID_PLATFORM\u003dandroid-26\" ^\n  \"-DANDROID_ABI\u003dx86\" ^\n  \"-DCMAKE_ANDROID_ARCH_ABI\u003dx86\" ^\n  \"-DANDROID_NDK\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\" ^\n  \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\" ^\n  \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n  \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\ninja.exe\" ^\n  \"-DCMAKE_CXX_FLAGS\u003d-std\u003dc++17\" ^\n  \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Girish\\\\LT101\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\h3i636p2\\\\obj\\\\x86\" ^\n  \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Girish\\\\LT101\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\h3i636p2\\\\obj\\\\x86\" ^\n  \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n  \"-BC:\\\\Girish\\\\LT101\\\\app\\\\.cxx\\\\Debug\\\\h3i636p2\\\\x86\" ^\n  -GNinja ^\n  \"-DANDROID_STL\u003dc++_shared\"\n",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "@echo off\n\"C:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\cmake.exe\" ^\n  \"-HC:\\\\Girish\\\\LT101\\\\app\\\\src\\\\main\\\\cpp\" ^\n  \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n  \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n  \"-DCMAKE_SYSTEM_VERSION\u003d26\" ^\n  \"-DANDROID_PLATFORM\u003dandroid-26\" ^\n  \"-DANDROID_ABI\u003dx86\" ^\n  \"-DCMAKE_ANDROID_ARCH_ABI\u003dx86\" ^\n  \"-DANDROID_NDK\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\" ^\n  \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\" ^\n  \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n  \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\ninja.exe\" ^\n  \"-DCMAKE_CXX_FLAGS\u003d-std\u003dc++17\" ^\n  \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Girish\\\\LT101\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\h3i636p2\\\\obj\\\\x86\" ^\n  \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Girish\\\\LT101\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\h3i636p2\\\\obj\\\\x86\" ^\n  \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n  \"-BC:\\\\Girish\\\\LT101\\\\app\\\\.cxx\\\\Debug\\\\h3i636p2\\\\x86\" ^\n  -GNinja ^\n  \"-DANDROID_STL\u003dc++_shared\"\n",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "Received process result: 1",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  },
+  {
+    "level_": 0,
+    "message_": "JSON generation completed with problem. Exception: com.android.ide.common.process.ProcessException: -- The C compiler identification is Clang 14.0.6\n-- The CXX compiler identification is Clang 14.0.6\n-- Detecting C compiler ABI info\n-- Detecting C compiler ABI info - done\n-- Check for working C compiler: C:/Users/gpedired/AppData/Local/Android/Sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/windows-x86_64/bin/clang.exe - skipped\n-- Detecting C compile features\n-- Detecting C compile features - done\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: C:/Users/gpedired/AppData/Local/Android/Sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/windows-x86_64/bin/clang++.exe - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Configuring done\n\nC++ build system [configure] failed while executing:\n    @echo off\n    \"C:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\cmake.exe\" ^\n      \"-HC:\\\\Girish\\\\LT101\\\\app\\\\src\\\\main\\\\cpp\" ^\n      \"-DCMAKE_SYSTEM_NAME\u003dAndroid\" ^\n      \"-DCMAKE_EXPORT_COMPILE_COMMANDS\u003dON\" ^\n      \"-DCMAKE_SYSTEM_VERSION\u003d26\" ^\n      \"-DANDROID_PLATFORM\u003dandroid-26\" ^\n      \"-DANDROID_ABI\u003dx86\" ^\n      \"-DCMAKE_ANDROID_ARCH_ABI\u003dx86\" ^\n      \"-DANDROID_NDK\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\" ^\n      \"-DCMAKE_ANDROID_NDK\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\" ^\n      \"-DCMAKE_TOOLCHAIN_FILE\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\ndk\\\\25.1.8937393\\\\build\\\\cmake\\\\android.toolchain.cmake\" ^\n      \"-DCMAKE_MAKE_PROGRAM\u003dC:\\\\Users\\\\gpedired\\\\AppData\\\\Local\\\\Android\\\\Sdk\\\\cmake\\\\3.22.1\\\\bin\\\\ninja.exe\" ^\n      \"-DCMAKE_CXX_FLAGS\u003d-std\u003dc++17\" ^\n      \"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY\u003dC:\\\\Girish\\\\LT101\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\h3i636p2\\\\obj\\\\x86\" ^\n      \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY\u003dC:\\\\Girish\\\\LT101\\\\app\\\\build\\\\intermediates\\\\cxx\\\\Debug\\\\h3i636p2\\\\obj\\\\x86\" ^\n      \"-DCMAKE_BUILD_TYPE\u003dDebug\" ^\n      \"-BC:\\\\Girish\\\\LT101\\\\app\\\\.cxx\\\\Debug\\\\h3i636p2\\\\x86\" ^\n      -GNinja ^\n      \"-DANDROID_STL\u003dc++_shared\"\n  from C:\\Girish\\LT101\\app\nCMake Error at CMakeLists.txt:12 (add_library):\n  Cannot find source file:\n\n    whisper.cpp\n\n\nCMake Error at CMakeLists.txt:12 (add_library):\n  No SOURCES given to target: whisper\n\n\nCMake Generate step failed.  Build files cannot be regenerated correctly.",
+    "file_": "C:\\Girish\\LT101\\app\\src\\main\\cpp\\CMakeLists.txt",
+    "tag_": "debug|x86",
+    "diagnosticCode_": 0,
+    "memoizedIsInitialized": 1,
+    "unknownFields": {
+      "fields": {}
+    },
+    "memoizedSize": -1,
+    "memoizedHashCode": 0
+  }
+]
